@@ -15,7 +15,7 @@ urls = contents.split("\n")
 
 # Iterate through the list of URLs
 
-for url in urls[4:]:
+for url in urls[129:]:
     response = requests.get(url)
     filename = url.split("/")[-1]
     with open(filename, "wb") as f:
