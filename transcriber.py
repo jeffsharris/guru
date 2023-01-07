@@ -14,8 +14,8 @@ with open("talks.txt", "r") as f:
 urls = contents.split("\n")
 
 # Iterate through the list of URLs
-
-for url in urls[129:]:
+i = 0
+for url in urls:
     response = requests.get(url)
     filename = url.split("/")[-1]
     with open(filename, "wb") as f:
@@ -26,4 +26,6 @@ for url in urls[129:]:
         f.write(transcription["text"]+'\n\n')
 
     os.remove(filename)
-    print(filename)
+    print(i)
+    print(':  ' + filename + '\n')
+    i = i + 1
