@@ -6,10 +6,13 @@ import numpy as np
 import pandas as pd
 import pickle
 import re
+import time
 from transformers import GPT2TokenizerFast
 
 DOC_EMBEDDINGS_MODEL = "text-embedding-ada-002"
 QUERY_EMBEDDINGS_MODEL = "text-embedding-ada-002"
+
+RATE_LIMIT_PER_MINUTE = 2900
 
 # Define a function to parse the text file
 def parse_text_file(file_path):
@@ -38,7 +41,22 @@ def get_doc_embedding(text: str) -> list[float]:
 def get_query_embedding(text: str) -> list[float]:
     return get_embedding(text, QUERY_EMBEDDINGS_MODEL)
 
-def compute_doc_embeddings(sentences: list[str]) -> list[tuple[str, list[float]]]:
+def compute_doc_embeddings_with_rate_limit(sentences: list[str]) -> list[tuple[str, list[float]]]:
+    result = []
+    start_time = time.time()
+    count = 0
+    for sentence in sentences:
+        result.append((sentence, get_doc_embedding(sentence)))
+        count += 1
+        if count == RATE_LIMIT_PER_MINUTE:
+            elapsed_time = time.time() - start_time
+            if elapsed_time < 60:
+                time.sleep(60 - elapsed_time)
+            start_time = time.time()
+            count = 0
+    return result
+
+def compute_doc_embeddings_sample(sentences: list[str], sampleSize: int) -> list[tuple[str, list[float]]]:
     """
     Create an embedding for each row in the dataframe using the OpenAI Embeddings API.
     
@@ -46,7 +64,7 @@ def compute_doc_embeddings(sentences: list[str]) -> list[tuple[str, list[float]]
     """
 
     return [
-        (sentence, get_doc_embedding(sentence)) for sentence in sentences
+        (sentence, get_doc_embedding(sentence)) for sentence in sentences[:sampleSize]
     ]
 
 def write_to_csv(filename: str, data: list[tuple[str, list[float]]]) -> None:
@@ -75,9 +93,7 @@ def read_from_csv(filename: str) -> list[tuple[str, list[float]]]:
 # Call the function with the file path
 sentences = parse_text_file('transcriptions.txt')
 
-write_to_csv("embeddings.csv", compute_doc_embeddings(sentences))
+write_to_csv("embeddings.csv", compute_doc_embeddings_sample(sentences, 10))
 
 ret = read_from_csv("embeddings.csv")
-print(ret[100])
-
-
+print(ret[5])
